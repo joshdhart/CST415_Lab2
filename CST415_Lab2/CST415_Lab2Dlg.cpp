@@ -220,10 +220,24 @@ void CCST415_Lab2Dlg::ConstructReqPackStr()
 
 void CCST415_Lab2Dlg::SynchronousSend_Receive()
 {
-	send(_connectSocket, _strReqPack.c_str(), _strReqPack.length(), NULL);
-
+	CString errorMsg;
 	char* rspPack = new char[];
+
+	// Send
+	int nError = send(_connectSocket, _strReqPack.c_str(), _strReqPack.length(), NULL);
+	if (nError == SOCKET_ERROR)
+	{
+		errorMsg.Format(L"send failed with error: %d\n", WSAGetLastError());
+		m_lstLog.AddString(errorMsg);
+	}
+
+	// Receive
 	int nRspSize = recv(_connectSocket, rspPack, sizeof(rspPack), NULL);
+	if (nRspSize == SOCKET_ERROR)
+	{
+		errorMsg.Format(L"recv failed with error: %d\n", WSAGetLastError());
+		m_lstLog.AddString(errorMsg);
+	}
 
 	// TODO: Parse char* rspPack
 }
