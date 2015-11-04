@@ -25,11 +25,13 @@ CCST415_Lab2Dlg::CCST415_Lab2Dlg(CWnd* pParent /*=NULL*/)
 void CCST415_Lab2Dlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_COMM_LOG_LIST, m_lstLog);
 }
 
 BEGIN_MESSAGE_MAP(CCST415_Lab2Dlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_START_BUTTON, &CCST415_Lab2Dlg::OnBnClickedStartButton)
 END_MESSAGE_MAP()
 
 
@@ -87,6 +89,91 @@ void CCST415_Lab2Dlg::OnPaint()
 	}
 }
 
+bool CCST415_Lab2Dlg::AttemptTCPConnection()
+{
+	WSADATA wsaData;
+
+	struct addrinfo *result = NULL,
+		*ptr = NULL,
+		hints;
+
+	int iResult;
+	CString errorMsg;
+
+	// Initialize Winsock
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		errorMsg.Format(L"WSAStartup failed with error: %d\n", iResult);
+		m_lstLog.AddString(errorMsg);
+		return false;
+	}
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(SERVER_IP_STRING, SERVICE_PORT_STRING, &hints, &result);
+	if (iResult != 0) {
+		errorMsg.Format(L"getaddrinfo failed with error: %d\n", iResult);
+		m_lstLog.AddString(errorMsg);
+		WSACleanup();
+		return false;
+	}
+
+	// Attempt to connect to an address until one succeeds
+	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+
+		// Create a SOCKET for connecting to server
+		_connectSocket = socket(ptr->ai_family, ptr->ai_socktype,
+			ptr->ai_protocol);
+		if (_connectSocket == INVALID_SOCKET) {
+			errorMsg.Format(L"socket failed with error: %ld\n", WSAGetLastError());
+			m_lstLog.AddString(errorMsg);
+			WSACleanup();
+			return false;
+		}
+
+		// Connect to server.
+		iResult = connect(_connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+		if (iResult == SOCKET_ERROR) {
+			closesocket(_connectSocket);
+			_connectSocket = INVALID_SOCKET;
+			continue;
+		}
+		break;
+	}
+
+	freeaddrinfo(result);
+
+	if (_connectSocket == INVALID_SOCKET) {
+		errorMsg.Format(L"Unable to connect to server!\n");
+		m_lstLog.AddString(errorMsg);
+		WSACleanup();
+		return false;
+	}
+
+	getsockname(_connectSocket, (struct sockaddr*)&_clientInfo, (int*)sizeof(_clientInfo));
+	getpeername(_connectSocket, (struct sockaddr*)&_serverInfo, (int*)sizeof(_serverInfo));
+
+	return true;
+}
+
+void CCST415_Lab2Dlg::Do100Transactions()
+{
+	_reqPacket.ClientSocketNo = (int)_connectSocket;
+	_reqPacket.ClientIPAddress = inet_ntoa(_clientInfo.sin_addr);
+	_reqPacket.ForeignHostIPAddress = inet_ntoa(_serverInfo.sin_addr);
+
+	for (int i = 0; i < 100; i++)
+	{
+		_reqPacket.RequestID = std::to_string(i);
+		// TODO: Send/Receive	
+	}
+}
+
+
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
 HCURSOR CCST415_Lab2Dlg::OnQueryDragIcon()
@@ -94,3 +181,11 @@ HCURSOR CCST415_Lab2Dlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+void CCST415_Lab2Dlg::OnBnClickedStartButton()
+{
+	if (AttemptTCPConnection())
+	{
+		Do100Transactions();
+	}
+}

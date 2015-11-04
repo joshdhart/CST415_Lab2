@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "afxwin.h"
 
 
 // CCST415_Lab2Dlg dialog
@@ -16,12 +17,17 @@ public:
 	ResponseMessagePacket _rspPacket;
 
 	SOCKET _connectSocket;
+	struct sockaddr_in _clientInfo;
+	struct sockaddr_in _serverInfo;
 
 // Dialog Data
 	enum { IDD = IDD_CST415_LAB2_DIALOG };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
+
+	bool AttemptTCPConnection();
+	void Do100Transactions();
 
 
 // Implementation
@@ -33,4 +39,8 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedStartButton();
+private:
+	CListBox m_lstLog;
 };

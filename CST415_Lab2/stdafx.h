@@ -5,8 +5,6 @@
 
 #pragma once
 
-using namespace std;
-
 #ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN            // Exclude rarely-used stuff from Windows headers
 #endif
@@ -37,10 +35,13 @@ using namespace std;
 
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 
+using namespace std;
+
 #define MAX_PACKET_LENGTH 146
 
-#define SERVER_IP_STRING "192.168.101.210"
-#define SERVICE_PORT_NUM 2605
+#define SERVER_IP_STRING		"192.168.101.210"
+#define SERVICE_PORT_STRING		"2605"
+#define SERVICE_PORT_NUM		2605
 
 struct RequestMessagePacket
 {
@@ -53,7 +54,7 @@ struct RequestMessagePacket
 	short ResponseDelay;
 	string ClientIPAddress;
 	short ClientServicePort;
-	short ClientSocketNo;
+	int ClientSocketNo;
 	string ForeignHostIPAddress;
 	short ForeignHostServicePort;
 	string StudentData;
@@ -71,7 +72,7 @@ struct ResponseMessagePacket
 	short ResponseDelay;
 	string ForeignHostIPAddress;
 	short ForeignHostServicePort;
-	short ServerSocketNo;
+	int ServerSocketNo;
 	string ServerIPAddress;
 	short ServerServicePort;
 	string ResponseID;
