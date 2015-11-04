@@ -20,6 +20,9 @@ public:
 	struct sockaddr_in _clientInfo;
 	struct sockaddr_in _serverInfo;
 
+	unsigned long _nSysStartTimeMs;
+	string _strReqPack;
+
 // Dialog Data
 	enum { IDD = IDD_CST415_LAB2_DIALOG };
 
@@ -28,6 +31,8 @@ public:
 
 	bool AttemptTCPConnection();
 	void Do100Transactions();
+	void ConstructReqPackStr();
+	void SynchronousSend_Receive();
 
 
 // Implementation

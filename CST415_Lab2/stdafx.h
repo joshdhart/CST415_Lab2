@@ -45,36 +45,36 @@ using namespace std;
 
 struct RequestMessagePacket
 {
-	short TCPHeader;
+	int TCPHeader;
 	string MessageType;
-	short msTimeStamp;
+	long msTimeStamp;
 	string RequestID;
 	string StudentName;
 	string StudentID;
-	short ResponseDelay;
+	int ResponseDelay;
 	string ClientIPAddress;
-	short ClientServicePort;
+	int ClientServicePort;
 	int ClientSocketNo;
 	string ForeignHostIPAddress;
-	short ForeignHostServicePort;
+	int ForeignHostServicePort;
 	string StudentData;
 	short ScenarioNo;
 };
 
 struct ResponseMessagePacket
 {
-	short TCPHeader;
+	int TCPHeader;
 	string MessageType;
-	short msTimeStamp;
+	long msTimeStamp;
 	string RequestID;
 	string StudentName;
 	string StudentID;
-	short ResponseDelay;
+	int ResponseDelay;
 	string ForeignHostIPAddress;
-	short ForeignHostServicePort;
+	int ForeignHostServicePort;
 	int ServerSocketNo;
 	string ServerIPAddress;
-	short ServerServicePort;
+	int ServerServicePort;
 	string ResponseID;
 	short ResponseType;
 };

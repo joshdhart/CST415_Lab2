@@ -12,6 +12,17 @@
 #endif
 
 
+string Dec2Bin(unsigned n)
+{
+	char result[(sizeof(unsigned) * 8) + 1];
+	unsigned index = sizeof(unsigned) * 8;
+	result[index] = '\0';
+	do result[--index] = '0' + (n & 1);
+	while (n >>= 1);
+	return string(result + index);
+}
+
+
 // CCST415_Lab2Dlg dialog
 
 
@@ -162,15 +173,59 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 
 void CCST415_Lab2Dlg::Do100Transactions()
 {
+	_nSysStartTimeMs = GetTickCount64();
+
 	_reqPacket.ClientSocketNo = (int)_connectSocket;
 	_reqPacket.ClientIPAddress = inet_ntoa(_clientInfo.sin_addr);
-	_reqPacket.ForeignHostIPAddress = inet_ntoa(_serverInfo.sin_addr);
+	_reqPacket.ClientServicePort = _clientInfo.sin_port;
+	//_reqPacket.ForeignHostIPAddress = inet_ntoa(_serverInfo.sin_addr);
+	//_reqPacket.ForeignHostServicePort = _serverInfo.sin_port;
 
 	for (int i = 0; i < 100; i++)
 	{
-		_reqPacket.RequestID = std::to_string(i);
-		// TODO: Send/Receive	
+		_reqPacket.RequestID = to_string(i);
+		_reqPacket.msTimeStamp = (GetTickCount64() - _nSysStartTimeMs);
+		// TODO: Send/Receive
+		ConstructReqPackStr();
+		SynchronousSend_Receive();
 	}
+}
+
+void CCST415_Lab2Dlg::ConstructReqPackStr()
+{
+	string strReqPack;
+
+	strReqPack = (_reqPacket.MessageType + '|');
+	strReqPack += (to_string(_reqPacket.msTimeStamp) + '|');
+	strReqPack += (_reqPacket.RequestID + '|');
+	strReqPack += (_reqPacket.StudentName + '|');
+	strReqPack += (_reqPacket.StudentID + '|');
+	strReqPack += (to_string(_reqPacket.ResponseDelay) + '|');
+	strReqPack += (_reqPacket.ClientIPAddress + '|');
+	strReqPack += (to_string(_reqPacket.ClientServicePort) + '|');
+	strReqPack += (to_string(_reqPacket.ClientSocketNo) + '|');
+	strReqPack += (_reqPacket.ForeignHostIPAddress + '|');
+	strReqPack += (to_string(_reqPacket.ForeignHostServicePort) + '|');
+	strReqPack += (_reqPacket.StudentData + '|');
+	strReqPack += (to_string(_reqPacket.ScenarioNo) + '|');
+
+	int nByteSize = strReqPack.size();
+	string strBinarySize = Dec2Bin(nByteSize);
+	if (strBinarySize.length() < 16)
+		strBinarySize.insert(0, (16 - strBinarySize.length()), '0');
+
+	strReqPack.insert(0, strBinarySize);
+	_strReqPack = strReqPack;
+}
+
+void CCST415_Lab2Dlg::SynchronousSend_Receive()
+{
+	send(_connectSocket, _strReqPack.c_str(), _strReqPack.length(), NULL);
+
+	char* rspPack = new char[];
+	int nRspSize = recv(_connectSocket, rspPack, sizeof(rspPack), NULL);
+
+	// TODO: Parse char* rspPack
 }
 
 
