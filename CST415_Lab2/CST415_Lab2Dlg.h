@@ -5,6 +5,10 @@
 #pragma once
 #include "afxwin.h"
 
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+
 
 // CCST415_Lab2Dlg dialog
 class CCST415_Lab2Dlg : public CDialogEx
@@ -20,8 +24,11 @@ public:
 	struct sockaddr_in _clientInfo;
 	struct sockaddr_in _serverInfo;
 
+	ofstream _instructorLog;
+
 	unsigned long _nSysStartTimeMs;
 	string _strReqPack;
+	string _strRspPack;
 
 // Dialog Data
 	enum { IDD = IDD_CST415_LAB2_DIALOG };
@@ -34,6 +41,7 @@ public:
 	void ConstructReqPackStr();
 	void SynchronousSend_Receive();
 	void AddToWindowLog(CString strItem);
+	void AddToInstructorLog(string strItem);
 
 
 // Implementation

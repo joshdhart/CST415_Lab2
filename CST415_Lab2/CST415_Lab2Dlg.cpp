@@ -106,6 +106,14 @@ void CCST415_Lab2Dlg::AddToWindowLog(CString strItem)
 	UpdateWindow();
 }
 
+void CCST415_Lab2Dlg::AddToInstructorLog(string strItem)
+{
+	_instructorLog.open("Lab2.Scenario1.HartwellJ.txt", fstream::out | fstream::app);
+	strItem += "<CR><LF>";
+	_instructorLog << strItem;
+	_instructorLog.close();
+}
+
 bool CCST415_Lab2Dlg::AttemptTCPConnection()
 {
 	WSADATA wsaData;
@@ -245,6 +253,7 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 	{
 		errorMsg.Format(L"send succeeded in sending %d characters", nError);
 		AddToWindowLog(errorMsg);
+		AddToInstructorLog(_strReqPack);
 	}
 
 	// Receive
@@ -259,9 +268,9 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 	{
 		errorMsg.Format(L"recv successfully received %d characters from host", nRspSize);
 		AddToWindowLog(errorMsg);
+		// TODO: Parse char* rspPack
+		// TODO: Add _strRspPack to the instructor Log file
 	}
-
-	// TODO: Parse char* rspPack
 }
 
 
@@ -277,6 +286,7 @@ void CCST415_Lab2Dlg::OnBnClickedStartButton()
 {
 	if (AttemptTCPConnection())
 	{
+		remove("Lab2.Scenario1.HartwellJ.txt");
 		Do100Transactions();
 	}
 }
