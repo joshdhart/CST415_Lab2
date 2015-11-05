@@ -33,6 +33,7 @@ public:
 	void Do100Transactions();
 	void ConstructReqPackStr();
 	void SynchronousSend_Receive();
+	void AddToWindowLog(CString strItem);
 
 
 // Implementation

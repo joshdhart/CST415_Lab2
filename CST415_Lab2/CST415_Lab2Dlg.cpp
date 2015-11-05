@@ -100,6 +100,12 @@ void CCST415_Lab2Dlg::OnPaint()
 	}
 }
 
+void CCST415_Lab2Dlg::AddToWindowLog(CString strItem)
+{
+	m_lstLog.AddString(strItem);
+	UpdateWindow();
+}
+
 bool CCST415_Lab2Dlg::AttemptTCPConnection()
 {
 	WSADATA wsaData;
@@ -114,8 +120,8 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 	// Initialize Winsock
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
-		errorMsg.Format(L"WSAStartup failed with error: %d\n", iResult);
-		m_lstLog.AddString(errorMsg);
+		errorMsg.Format(L"WSAStartup failed with error: %d", iResult);
+		AddToWindowLog(errorMsg);
 		return false;
 	}
 
@@ -127,8 +133,8 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 	// Resolve the server address and port
 	iResult = getaddrinfo(SERVER_IP_STRING, SERVICE_PORT_STRING, &hints, &result);
 	if (iResult != 0) {
-		errorMsg.Format(L"getaddrinfo failed with error: %d\n", iResult);
-		m_lstLog.AddString(errorMsg);
+		errorMsg.Format(L"getaddrinfo failed with error: %d", iResult);
+		AddToWindowLog(errorMsg);
 		WSACleanup();
 		return false;
 	}
@@ -140,13 +146,14 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 		_connectSocket = socket(ptr->ai_family, ptr->ai_socktype,
 			ptr->ai_protocol);
 		if (_connectSocket == INVALID_SOCKET) {
-			errorMsg.Format(L"socket failed with error: %ld\n", WSAGetLastError());
-			m_lstLog.AddString(errorMsg);
+			errorMsg.Format(L"socket failed with error: %ld", WSAGetLastError());
+			AddToWindowLog(errorMsg);
 			WSACleanup();
 			return false;
 		}
 
 		// Connect to server.
+		AddToWindowLog(L"Attempting to Connect...");
 		iResult = connect(_connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
 		if (iResult == SOCKET_ERROR) {
 			closesocket(_connectSocket);
@@ -159,11 +166,13 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 	freeaddrinfo(result);
 
 	if (_connectSocket == INVALID_SOCKET) {
-		errorMsg.Format(L"Unable to connect to server!\n");
-		m_lstLog.AddString(errorMsg);
+		errorMsg.Format(L"Unable to connect to server!");
+		AddToWindowLog(errorMsg);
 		WSACleanup();
 		return false;
 	}
+
+	AddToWindowLog(L"Successfully connected");
 
 	getsockname(_connectSocket, (struct sockaddr*)&_clientInfo, (int*)sizeof(_clientInfo));
 	getpeername(_connectSocket, (struct sockaddr*)&_serverInfo, (int*)sizeof(_serverInfo));
@@ -188,6 +197,7 @@ void CCST415_Lab2Dlg::Do100Transactions()
 		// TODO: Send/Receive
 		ConstructReqPackStr();
 		SynchronousSend_Receive();
+		Sleep(50);	// Must wait at least 50ms between transmissions
 	}
 }
 
@@ -224,19 +234,31 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 	char* rspPack = new char[];
 
 	// Send
+	AddToWindowLog(L"Attempting to Send...");
 	int nError = send(_connectSocket, _strReqPack.c_str(), _strReqPack.length(), NULL);
 	if (nError == SOCKET_ERROR)
 	{
-		errorMsg.Format(L"send failed with error: %d\n", WSAGetLastError());
-		m_lstLog.AddString(errorMsg);
+		errorMsg.Format(L"send failed with error: %d", WSAGetLastError());
+		AddToWindowLog(errorMsg);
+	}
+	else
+	{
+		errorMsg.Format(L"send succeeded in sending %d characters", nError);
+		AddToWindowLog(errorMsg);
 	}
 
 	// Receive
+	AddToWindowLog(L"Attempting to Receive...");
 	int nRspSize = recv(_connectSocket, rspPack, sizeof(rspPack), NULL);
 	if (nRspSize == SOCKET_ERROR)
 	{
-		errorMsg.Format(L"recv failed with error: %d\n", WSAGetLastError());
-		m_lstLog.AddString(errorMsg);
+		errorMsg.Format(L"recv failed with error: %d", WSAGetLastError());
+		AddToWindowLog(errorMsg);
+	}
+	else
+	{
+		errorMsg.Format(L"recv successfully received %d characters from host", nRspSize);
+		AddToWindowLog(errorMsg);
 	}
 
 	// TODO: Parse char* rspPack
