@@ -228,11 +228,22 @@ void CCST415_Lab2Dlg::ConstructReqPackStr()
 	strReqPack += (to_string(_reqPacket.ScenarioNo) + '|');
 
 	int nByteSize = strReqPack.size();
-	string strBinarySize = Dec2Bin(nByteSize);
+	if (nByteSize < 127)
+	{
+		char cByte = (char)nByteSize;
+		string tcpHeader;
+		tcpHeader = cByte;
+		strReqPack.insert(0, tcpHeader);
+	}
+	else
+	{
+		// TODO: Handle
+	}
+	/*string strBinarySize = Dec2Bin(nByteSize);
 	if (strBinarySize.length() < 16)
 		strBinarySize.insert(0, (16 - strBinarySize.length()), '0');
 
-	strReqPack.insert(0, strBinarySize);
+	strReqPack.insert(0, strBinarySize);*/
 	_strReqPack = strReqPack;
 }
 
@@ -243,7 +254,8 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 
 	// Send
 	AddToWindowLog(L"Attempting to Send...");
-	int nError = send(_connectSocket, _strReqPack.c_str(), _strReqPack.length(), NULL);
+	const char* cSend = (NULL + _strReqPack.c_str());
+	int nError = send(_connectSocket, cSend, _strReqPack.length(), NULL);
 	if (nError == SOCKET_ERROR)
 	{
 		errorMsg.Format(L"send failed with error: %d", WSAGetLastError());

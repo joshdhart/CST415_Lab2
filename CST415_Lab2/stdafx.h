@@ -45,7 +45,6 @@ using namespace std;
 
 struct RequestMessagePacket
 {
-	int TCPHeader;
 	string MessageType;
 	long msTimeStamp;
 	string RequestID;
@@ -63,7 +62,6 @@ struct RequestMessagePacket
 
 struct ResponseMessagePacket
 {
-	int TCPHeader;
 	string MessageType;
 	long msTimeStamp;
 	string RequestID;
