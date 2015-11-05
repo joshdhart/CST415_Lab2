@@ -202,7 +202,6 @@ void CCST415_Lab2Dlg::Do100Transactions()
 	{
 		_reqPacket.RequestID = to_string(i);
 		_reqPacket.msTimeStamp = (GetTickCount64() - _nSysStartTimeMs);
-		// TODO: Send/Receive
 		ConstructReqPackStr();
 		SynchronousSend_Receive();
 		Sleep(50);	// Must wait at least 50ms between transmissions
@@ -231,8 +230,8 @@ void CCST415_Lab2Dlg::ConstructReqPackStr()
 	if (nByteSize < 127)
 	{
 		char cByte = (char)nByteSize;
-		string tcpHeader;
-		tcpHeader = cByte;
+		string tcpHeader = "0";
+		tcpHeader += cByte;
 		strReqPack.insert(0, tcpHeader);
 	}
 	else
@@ -254,8 +253,7 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 
 	// Send
 	AddToWindowLog(L"Attempting to Send...");
-	const char* cSend = (NULL + _strReqPack.c_str());
-	int nError = send(_connectSocket, cSend, _strReqPack.length(), NULL);
+	int nError = send(_connectSocket, _strReqPack.c_str(), _strReqPack.length(), NULL);
 	if (nError == SOCKET_ERROR)
 	{
 		errorMsg.Format(L"send failed with error: %d", WSAGetLastError());
