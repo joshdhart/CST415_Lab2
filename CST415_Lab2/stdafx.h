@@ -43,6 +43,8 @@ using namespace std;
 #define SERVICE_PORT_STRING		"2605"
 #define SERVICE_PORT_NUM		2605
 
+typedef unsigned char Byte;
+
 struct RequestMessagePacket
 {
 	string MessageType;

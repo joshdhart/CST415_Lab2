@@ -103,15 +103,98 @@ void CCST415_Lab2Dlg::OnPaint()
 void CCST415_Lab2Dlg::AddToWindowLog(CString strItem)
 {
 	m_lstLog.AddString(strItem);
+
+	int nCount = m_lstLog.GetCount();
+	m_lstLog.SetCurSel(nCount - 1);
+
 	UpdateWindow();
 }
 
 void CCST415_Lab2Dlg::AddToInstructorLog(string strItem)
 {
 	_instructorLog.open("Lab2.Scenario1.HartwellJ.txt", fstream::out | fstream::app);
-	strItem += "<CR><LF>";
+	strItem += "\r\n";
 	_instructorLog << strItem;
 	_instructorLog.close();
+}
+
+void CCST415_Lab2Dlg::AddTrailerToInstructorLog()
+{
+	string trailerLog = "";
+	int nResponse;
+
+	time_t currentTime;
+	struct tm *localTime;
+
+	time(&currentTime);                   // Get the current time
+	localTime = localtime(&currentTime);  // Convert the current time to the local time
+
+	if (localTime->tm_mon + 1 < 10)
+	{
+		trailerLog += "0";
+		trailerLog += to_string(localTime->tm_mon + 1);
+	}
+	else
+		trailerLog += to_string(localTime->tm_mon + 1);
+	if (localTime->tm_mday < 10)
+	{
+		trailerLog += "0";
+		trailerLog += to_string(localTime->tm_mday);
+	}
+	else
+		trailerLog += to_string(localTime->tm_mday);
+	trailerLog += to_string(localTime->tm_year + 1900);
+	trailerLog += "|";
+	if (localTime->tm_hour < 10)
+	{
+		trailerLog += "0";
+		trailerLog += to_string(localTime->tm_hour);
+	}
+	else
+		trailerLog += to_string(localTime->tm_hour);
+	if (localTime->tm_min < 10)
+	{
+		trailerLog += "0";
+		trailerLog += to_string(localTime->tm_min);
+	}
+	else
+		trailerLog += to_string(localTime->tm_min);
+	if (localTime->tm_sec < 10)
+	{
+		trailerLog += "0";
+		trailerLog += to_string(localTime->tm_sec);
+	}
+	else
+		trailerLog += to_string(localTime->tm_sec);
+	trailerLog += "|";
+
+	nResponse = shutdown(_connectSocket, SD_RECEIVE);
+	if (nResponse == ERROR_SUCCESS)
+		trailerLog += "00000|";
+	else
+	{
+		trailerLog += to_string(nResponse);
+		trailerLog += "|";
+	}
+
+	nResponse = shutdown(_connectSocket, SD_SEND);
+	if (nResponse == ERROR_SUCCESS)
+		trailerLog += "00000|";
+	else
+	{
+		trailerLog += to_string(nResponse);
+		trailerLog += "|";
+	}
+
+	nResponse = closesocket(_connectSocket);
+	if (nResponse == ERROR_SUCCESS)
+		trailerLog += "00000";
+	else
+	{
+		trailerLog += to_string(nResponse);
+	}
+
+	AddToInstructorLog(trailerLog);
 }
 
 bool CCST415_Lab2Dlg::AttemptTCPConnection()
@@ -182,26 +265,34 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 
 	AddToWindowLog(L"Successfully connected");
 
-	getsockname(_connectSocket, (struct sockaddr*)&_clientInfo, (int*)sizeof(_clientInfo));
-	getpeername(_connectSocket, (struct sockaddr*)&_serverInfo, (int*)sizeof(_serverInfo));
+	// Get Client IP
+	char szHostName[255];
+	gethostname(szHostName, 255);
+	struct hostent *host_entry;
+	host_entry = gethostbyname(szHostName);
+	_strClientIp = inet_ntoa(*(struct in_addr *)*host_entry->h_addr_list);
+
+	// Get Client Port
+	struct sockaddr_in sin;
+	int addrlen = sizeof(sin);
+	getsockname(_connectSocket, (struct sockaddr *)&sin, &addrlen);
+	_nClientPort = ntohs(sin.sin_port);
 
 	return true;
 }
 
 void CCST415_Lab2Dlg::Do100Transactions()
 {
-	_nSysStartTimeMs = GetTickCount64();
-
 	_reqPacket.ClientSocketNo = (int)_connectSocket;
-	_reqPacket.ClientIPAddress = inet_ntoa(_clientInfo.sin_addr);
-	_reqPacket.ClientServicePort = _clientInfo.sin_port;
+	_reqPacket.ClientIPAddress = _strClientIp;
+	_reqPacket.ClientServicePort = _nClientPort;
 	//_reqPacket.ForeignHostIPAddress = inet_ntoa(_serverInfo.sin_addr);
 	//_reqPacket.ForeignHostServicePort = _serverInfo.sin_port;
 
 	for (int i = 0; i < 100; i++)
 	{
 		_reqPacket.RequestID = to_string(i);
-		_reqPacket.msTimeStamp = (GetTickCount64() - _nSysStartTimeMs);
+		_reqPacket.msTimeStamp = (GetTickCount64());
 		ConstructReqPackStr();
 		SynchronousSend_Receive();
 		Sleep(50);	// Must wait at least 50ms between transmissions
@@ -226,30 +317,16 @@ void CCST415_Lab2Dlg::ConstructReqPackStr()
 	strReqPack += (_reqPacket.StudentData + '|');
 	strReqPack += (to_string(_reqPacket.ScenarioNo) + '|');
 
-	int nByteSize = strReqPack.size();
-	if (nByteSize < 127)
-	{
-		char cByte = (char)nByteSize;
-		string tcpHeader = "0";
-		tcpHeader += cByte;
-		strReqPack.insert(0, tcpHeader);
-	}
-	else
-	{
-		// TODO: Handle
-	}
-	/*string strBinarySize = Dec2Bin(nByteSize);
-	if (strBinarySize.length() < 16)
-		strBinarySize.insert(0, (16 - strBinarySize.length()), '0');
+	Byte headerBytes[2] = { '\0', (Byte)strReqPack.size() };
+	strReqPack.insert(0, (const char*)headerBytes, 2);
 
-	strReqPack.insert(0, strBinarySize);*/
 	_strReqPack = strReqPack;
 }
 
 void CCST415_Lab2Dlg::SynchronousSend_Receive()
 {
 	CString errorMsg;
-	char* rspPack = new char[];
+	char rspPack[255];
 
 	// Send
 	AddToWindowLog(L"Attempting to Send...");
@@ -268,7 +345,7 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 
 	// Receive
 	AddToWindowLog(L"Attempting to Receive...");
-	int nRspSize = recv(_connectSocket, rspPack, sizeof(rspPack), NULL);
+	int nRspSize = recv(_connectSocket, rspPack, 255, NULL);
 	if (nRspSize == SOCKET_ERROR)
 	{
 		errorMsg.Format(L"recv failed with error: %d", WSAGetLastError());
@@ -278,8 +355,9 @@ void CCST415_Lab2Dlg::SynchronousSend_Receive()
 	{
 		errorMsg.Format(L"recv successfully received %d characters from host", nRspSize);
 		AddToWindowLog(errorMsg);
-		// TODO: Parse char* rspPack
-		// TODO: Add _strRspPack to the instructor Log file
+		string strRspPack(rspPack, (nRspSize-1));
+		strRspPack += "1|";
+		AddToInstructorLog(strRspPack);
 	}
 }
 
@@ -298,5 +376,6 @@ void CCST415_Lab2Dlg::OnBnClickedStartButton()
 	{
 		remove("Lab2.Scenario1.HartwellJ.txt");
 		Do100Transactions();
+		AddTrailerToInstructorLog();
 	}
 }

@@ -21,12 +21,11 @@ public:
 	ResponseMessagePacket _rspPacket;
 
 	SOCKET _connectSocket;
-	struct sockaddr_in _clientInfo;
-	struct sockaddr_in _serverInfo;
 
 	ofstream _instructorLog;
 
-	unsigned long _nSysStartTimeMs;
+	int _nClientPort;
+	string _strClientIp;
 	string _strReqPack;
 	string _strRspPack;
 
@@ -42,6 +41,7 @@ public:
 	void SynchronousSend_Receive();
 	void AddToWindowLog(CString strItem);
 	void AddToInstructorLog(string strItem);
+	void AddTrailerToInstructorLog();
 
 
 // Implementation
