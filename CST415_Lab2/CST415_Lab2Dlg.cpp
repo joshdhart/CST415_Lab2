@@ -194,14 +194,15 @@ void CCST415_Lab2Dlg::AddTrailerToInstructorLog()
 	trailerLog += "00000";
 
 	AddToInstructorLog(trailerLog);
+	AddToWindowLog(L"Done - Closing Socket Connection");
 }
 
 void CCST415_Lab2Dlg::AsyncReceive()
 {
 	CString errorMsg;
-	char rspPack[255];
+	char rspPack[512];
 
-	int nRspSize = m_asyncClient->Receive(rspPack, 255, 0);
+	int nRspSize = m_asyncClient->Receive(rspPack, 512, 0);
 	if (nRspSize == INVALID_SOCKET)
 	{
 		errorMsg.Format(L"Async Receive failed with error: %d", WSAGetLastError());
@@ -213,10 +214,10 @@ void CCST415_Lab2Dlg::AsyncReceive()
 		AddToWindowLog(errorMsg);
 		string strRspPack(rspPack, (nRspSize - 1));
 
-		// Check for double Rsp's
-		int nBars = count(strRspPack.begin(), strRspPack.end(), '|');
-		if (nBars > 12)
+		// Check for multiple Rsp's
+		while (count(strRspPack.begin(), strRspPack.end(), '|') > 12)
 		{
+			int nBars = count(strRspPack.begin(), strRspPack.end(), '|');
 			bool delayed = false;
 			int nSplitPos = strRspPack.find("Req|");
 			if (nSplitPos == string::npos)
@@ -234,26 +235,6 @@ void CCST415_Lab2Dlg::AsyncReceive()
 			strRspPack = strRspPack.substr((nSplitPos + 5), (strRspPack.length() - (nSplitPos + 5)));
 		}
 
-		// Check for triple Rsp's
-		nBars = count(strRspPack.begin(), strRspPack.end(), '|');
-		if (nBars > 12)
-		{
-			bool delayed = false;
-			int nSplitPos = strRspPack.find("Req|");
-			if (nSplitPos == string::npos)
-			{
-				nSplitPos = strRspPack.find("ed |");
-				delayed = true;
-			}
-			string strFirstRsp = strRspPack.substr(0, (nSplitPos + 4));
-			if (delayed)
-				strFirstRsp += "3|";
-			else
-				strFirstRsp += "1|";
-
-			AddToInstructorLog(strFirstRsp);
-			strRspPack = strRspPack.substr((nSplitPos + 5), (strRspPack.length() - (nSplitPos + 5)));
-		}
 
 		if (strRspPack.find("Delayed |") != string::npos)
 			strRspPack += "3|";
@@ -366,12 +347,12 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 	AddToWindowLog(L"Successfully connected");*/
 
 	// Get Client IP
-	/*char szHostName[255];
+	char szHostName[255];
 	gethostname(szHostName, 255);
 	struct hostent *host_entry;
 	host_entry = gethostbyname(szHostName);
-	_strClientIp = inet_ntoa(*(struct in_addr *)*host_entry->h_addr_list);*/
-	_strClientIp = "10.1.20.18";
+	_strClientIp = inet_ntoa(*(struct in_addr *)*host_entry->h_addr_list);
+	//_strClientIp = "10.1.20.18";
 
 	// Get Client Port
 	struct sockaddr_in sin;
@@ -491,6 +472,7 @@ HCURSOR CCST415_Lab2Dlg::OnQueryDragIcon()
 
 void CCST415_Lab2Dlg::OnBnClickedStartButton()
 {
+	m_lstLog.ResetContent();
 	if (AttemptTCPConnection())
 	{
 		//remove("Lab2.Scenario1.HartwellJ.txt");		// Scenario 1
