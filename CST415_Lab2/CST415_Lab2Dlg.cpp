@@ -58,7 +58,8 @@ BOOL CCST415_Lab2Dlg::OnInitDialog()
 	_reqPacket.ForeignHostServicePort = SERVICE_PORT_NUM;
 	_reqPacket.StudentData = "blah";
 	//_reqPacket.ScenarioNo = 1;		// Scenario 1
-	_reqPacket.ScenarioNo = 2;
+	//_reqPacket.ScenarioNo = 2;		// Scenario 2
+	_reqPacket.ScenarioNo = 3;
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -105,7 +106,8 @@ void CCST415_Lab2Dlg::AddToWindowLog(CString strItem)
 void CCST415_Lab2Dlg::AddToInstructorLog(string strItem)
 {
 	//_instructorLog.open("Lab2.Scenario1.HartwellJ.txt", fstream::out | fstream::app);
-	_instructorLog.open("Lab2.Scenario2.HartwellJ.txt", fstream::out | fstream::app);
+	//_instructorLog.open("Lab2.Scenario2.HartwellJ.txt", fstream::out | fstream::app);
+	_instructorLog.open("Lab2.Scenario3.HartwellJ.txt", fstream::out | fstream::app);
 	strItem += "\r\n";
 	_instructorLog << strItem;
 	_instructorLog.close();
@@ -366,6 +368,9 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 
 UINT CCST415_Lab2Dlg::Do100Transactions( LPVOID pParam )
 {
+	int nReqSize;
+	CString strLog;
+
 	CCST415_Lab2Dlg *theDlg = (CCST415_Lab2Dlg*)pParam;
 
 	//_reqPacket.ClientSocketNo = (int)_connectSocket;		// Scenario 1
@@ -385,16 +390,18 @@ UINT CCST415_Lab2Dlg::Do100Transactions( LPVOID pParam )
 		theDlg->ConstructReqPackStr();
 		//SynchronousSend_Receive();		// Scenario 1
 		theDlg->AddToWindowLog(L"Attempting to Send...");
-		if (theDlg->m_asyncClient->Send(theDlg->_strReqPack.c_str(), theDlg->_strReqPack.length(), 0) == INVALID_SOCKET)
+		nReqSize = theDlg->m_asyncClient->Send(theDlg->_strReqPack.c_str(), theDlg->_strReqPack.length(), 0);
+		if (nReqSize == INVALID_SOCKET)
 			theDlg->AddToWindowLog(L"Async Send Failed");
 		else
-			theDlg->AddToWindowLog(L"Async Send Succeeded");
+		{
+			strLog.Format(L"Async Send succeeded in sending %d characters to host", nReqSize);
+			theDlg->AddToWindowLog(strLog);
+		}
 		theDlg->AddToInstructorLog(theDlg->_strReqPack);
 
-		Sleep(50);	// Must wait at least 50ms between transmissions
+		Sleep(100);	// Must wait at least 50ms between transmissions
 	}
-
-	//theDlg->AddTrailerToInstructorLog();
 	
 	return TRUE;
 }
@@ -476,7 +483,8 @@ void CCST415_Lab2Dlg::OnBnClickedStartButton()
 	if (AttemptTCPConnection())
 	{
 		//remove("Lab2.Scenario1.HartwellJ.txt");		// Scenario 1
-		remove("Lab2.Scenario2.HartwellJ.txt");
+		//remove("Lab2.Scenario2.HartwellJ.txt");		// Scenario 2
+		remove("Lab2.Scenario3.HartwellJ.txt");
 		//Do100Transactions();		// Scenario 1
 		AfxBeginThread(Do100Transactions, this);
 	}
