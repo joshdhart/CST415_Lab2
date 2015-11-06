@@ -40,6 +40,7 @@ using namespace std;
 #define MAX_PACKET_LENGTH 146
 
 #define SERVER_IP_STRING		"192.168.101.210"
+#define SERVER_IP_LSTRING		L"192.168.101.210"
 #define SERVICE_PORT_STRING		"2605"
 #define SERVICE_PORT_NUM		2605
 

@@ -99,6 +99,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AsyncClient.h" />
     <ClInclude Include="CST415_Lab2.h" />
     <ClInclude Include="CST415_Lab2Dlg.h" />
     <ClInclude Include="Resource.h" />
@@ -106,6 +107,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AsyncClient.cpp" />
     <ClCompile Include="CST415_Lab2.cpp" />
     <ClCompile Include="CST415_Lab2Dlg.cpp" />
     <ClCompile Include="stdafx.cpp">
