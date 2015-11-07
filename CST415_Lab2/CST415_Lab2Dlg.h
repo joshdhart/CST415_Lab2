@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <fstream>
 #include <stdio.h>
+#include <vector>
 
 
 // CCST415_Lab2Dlg dialog
@@ -29,10 +30,17 @@ public:
 
 	ofstream _instructorLog;
 
+	bool _bLatent;
+	int _nCurrentId;
 	int _nClientPort;
 	string _strClientIp;
 	string _strReqPack;
 	string _strRspPack;
+
+	int _allLatents[100];
+	vector<string> _allReqPacks;
+	bool _allRspPacks[100];
+	//vector<string> _allRspPacks;
 
 // Dialog Data
 	enum { IDD = IDD_CST415_LAB2_DIALOG };
@@ -40,13 +48,16 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
+	static UINT Do100Transactions(LPVOID pParam);
+	static UINT TrackLatancy(LPVOID pParam);
+
 	bool AttemptTCPConnection();
-	static UINT Do100Transactions( LPVOID pParam );
 	void ConstructReqPackStr();
 	void SynchronousSend_Receive();
 	void AddToWindowLog(CString strItem);
 	void AddToInstructorLog(string strItem);
 	void AddTrailerToInstructorLog();
+	void DoStandInRsp(int id);
 
 // Implementation
 	HICON m_hIcon;

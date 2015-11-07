@@ -18,6 +18,8 @@ CCST415_Lab2Dlg::CCST415_Lab2Dlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CCST415_Lab2Dlg::IDD, pParent)
 	, _connectSocket(INVALID_SOCKET)
 	, _nClientPort(0)
+	, _nCurrentId(-1)
+	, _bLatent(false)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_asyncClient = new CAsyncClient();
@@ -185,15 +187,13 @@ void CCST415_Lab2Dlg::AddTrailerToInstructorLog()
 		trailerLog += "|";
 	}
 
-	//nResponse = closesocket(_connectSocket);		// Scenario 1
-	/*if (nResponse == ERROR_SUCCESS)
+	nResponse = closesocket(_connectSocket);
+	if (nResponse == ERROR_SUCCESS)
 		trailerLog += "00000";
 	else
 	{
 		trailerLog += to_string(nResponse);
-	}*/
-	m_asyncClient->Close();
-	trailerLog += "00000";
+	}
 
 	AddToInstructorLog(trailerLog);
 	AddToWindowLog(L"Done - Closing Socket Connection");
@@ -216,33 +216,76 @@ void CCST415_Lab2Dlg::AsyncReceive()
 		AddToWindowLog(errorMsg);
 		string strRspPack(rspPack, (nRspSize - 1));
 
+		// ---------------------- Scenario 2 ----------------------
 		// Check for multiple Rsp's
 		while (count(strRspPack.begin(), strRspPack.end(), '|') > 12)
 		{
 			int nBars = count(strRspPack.begin(), strRspPack.end(), '|');
-			bool delayed = false;
 			int nSplitPos = strRspPack.find("Req|");
 			if (nSplitPos == string::npos)
 			{
 				nSplitPos = strRspPack.find("ed |");
-				delayed = true;
 			}
 			string strFirstRsp = strRspPack.substr(0, (nSplitPos + 4));
-			if (delayed)
-				strFirstRsp += "3|";
-			else
-				strFirstRsp += "1|";
 
-			AddToInstructorLog(strFirstRsp);
+			//strFirstRsp += "1|";
+			//AddToInstructorLog(strFirstRsp);
+
+			string strFindId = (strFirstRsp.substr(strFirstRsp.find("|") + 12, 2));
+			int nThisId = atoi(strFindId.c_str());
+
+			if (nThisId == _nCurrentId || _allLatents[nThisId] == 0)
+			{
+				//AddToInstructorLog(_allReqPacks.at(nThisId));
+				AddToInstructorLog(strFirstRsp += "1|");
+				_allRspPacks[nThisId] = true;
+			}
+			else if (_allLatents[nThisId] == 1)
+			{
+				AddToInstructorLog(_allReqPacks.at(nThisId));
+				AddToInstructorLog(strFirstRsp += "3|");
+				_allRspPacks[nThisId] = true;
+			}
+			else if (_allLatents[nThisId] == 2)
+			{
+				AddToInstructorLog(strFirstRsp += "4|");
+			}
+
 			strRspPack = strRspPack.substr((nSplitPos + 5), (strRspPack.length() - (nSplitPos + 5)));
 		}
 
+		string strFindId = (strRspPack.substr(strRspPack.find("|") + 12, 2));
+		int nThisId = atoi(strFindId.c_str());
 
-		if (strRspPack.find("Delayed |") != string::npos)
-			strRspPack += "3|";
-		else
-			strRspPack += "1|";
-		AddToInstructorLog(strRspPack);
+		if (nThisId == _nCurrentId || _allLatents[nThisId] == 0)
+		{
+			//AddToInstructorLog(_allReqPacks.at(nThisId));
+			AddToInstructorLog(strRspPack += "1|");
+			_allRspPacks[nThisId] = true;
+
+			/*if (_bLatent)
+				AddToInstructorLog(strRspPack += "3|");
+			else
+			{
+				AddToInstructorLog(_allReqPacks.at(nThisId));
+				AddToInstructorLog(strRspPack += "1|");
+				_allRspPacks.push_back(strRspPack);
+			}*/
+		}
+		else if (_allLatents[nThisId] == 1)
+		{
+			AddToInstructorLog(_allReqPacks.at(nThisId));
+			AddToInstructorLog(strRspPack += "3|");
+			_allRspPacks[nThisId] = true;
+		}
+		else if (_allLatents[nThisId] == 2)
+		{
+			AddToInstructorLog(strRspPack += "4|");
+		}
+
+		/*	Scenario 2
+		strFirstRsp += "1|";
+		AddToInstructorLog(strRspPack);*/
 
 		if (strRspPack.find("|99|") != string::npos)
 			AddTrailerToInstructorLog();
@@ -349,12 +392,12 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 	AddToWindowLog(L"Successfully connected");*/
 
 	// Get Client IP
-	char szHostName[255];
+	/*char szHostName[255];
 	gethostname(szHostName, 255);
 	struct hostent *host_entry;
 	host_entry = gethostbyname(szHostName);
-	_strClientIp = inet_ntoa(*(struct in_addr *)*host_entry->h_addr_list);
-	//_strClientIp = "10.1.20.18";
+	_strClientIp = inet_ntoa(*(struct in_addr *)*host_entry->h_addr_list);*/
+	_strClientIp = "10.1.20.4";
 
 	// Get Client Port
 	struct sockaddr_in sin;
@@ -364,6 +407,27 @@ bool CCST415_Lab2Dlg::AttemptTCPConnection()
 	_nClientPort = ntohs(sin.sin_port);
 
 	return true;
+}
+
+UINT CCST415_Lab2Dlg::TrackLatancy(LPVOID pParam)
+{
+	CCST415_Lab2Dlg *theDlg = (CCST415_Lab2Dlg*)pParam;
+	int nThisId = theDlg->_nCurrentId;
+
+	//theDlg->_bLatent = false;
+	theDlg->_allLatents[nThisId] = 0;
+	Sleep(3000);
+	if (!theDlg->_allRspPacks[nThisId])
+	{
+		theDlg->DoStandInRsp(nThisId);
+		//theDlg->_bLatent = true;
+		theDlg->_allLatents[nThisId] = 1;
+		Sleep(20000);
+		//theDlg->_bLatent = false;
+		theDlg->_allLatents[nThisId] = 2;
+	}
+
+	return 0;
 }
 
 UINT CCST415_Lab2Dlg::Do100Transactions( LPVOID pParam )
@@ -380,8 +444,8 @@ UINT CCST415_Lab2Dlg::Do100Transactions( LPVOID pParam )
 
 	for (int i = 0; i < 100; i++)
 	{
-		if (i == 0 || i == 1 || i == 2)
-			theDlg->_reqPacket.ResponseDelay = 80;
+		if (i == 3 || i == 5 || i == 8)
+			theDlg->_reqPacket.ResponseDelay = 4000;
 		else
 			theDlg->_reqPacket.ResponseDelay = 0;
 		theDlg->_reqPacket.RequestID = to_string(i);
@@ -392,18 +456,34 @@ UINT CCST415_Lab2Dlg::Do100Transactions( LPVOID pParam )
 		theDlg->AddToWindowLog(L"Attempting to Send...");
 		nReqSize = theDlg->m_asyncClient->Send(theDlg->_strReqPack.c_str(), theDlg->_strReqPack.length(), 0);
 		if (nReqSize == INVALID_SOCKET)
-			theDlg->AddToWindowLog(L"Async Send Failed");
-		else
 		{
-			strLog.Format(L"Async Send succeeded in sending %d characters to host", nReqSize);
-			theDlg->AddToWindowLog(strLog);
+			theDlg->AddToWindowLog(L"Async Send Failed");
+			return -1;
 		}
+
+		strLog.Format(L"Async Send succeeded in sending %d characters to host", nReqSize);
+		theDlg->AddToWindowLog(strLog);
+		theDlg->_nCurrentId++;
+		theDlg->_allReqPacks.push_back(theDlg->_strReqPack);
+		AfxBeginThread(TrackLatancy, pParam);
 		theDlg->AddToInstructorLog(theDlg->_strReqPack);
 
-		Sleep(100);	// Must wait at least 50ms between transmissions
+		Sleep(100);
 	}
-	
-	return TRUE;
+
+	return 0;
+}
+
+void CCST415_Lab2Dlg::DoStandInRsp(int id)
+{
+	_strRspPack = ("RSP|" + to_string(GetTickCount64()) + "|" + to_string(id) + "|HartweJ|19-5193|4000|" + _reqPacket.ClientIPAddress + "|" 
+		+ to_string(_reqPacket.ClientServicePort) + "|" + to_string(_reqPacket.ClientSocketNo) + "|192.168.101.210|2605|MY-STAND-IN|2|");
+	Byte headerBytes[2] = { '\0', (Byte)_strRspPack.size() };
+	_strRspPack.insert(0, (const char*)headerBytes, 2);
+
+	AddToInstructorLog(_allReqPacks.at(id));
+	AddToInstructorLog(_strRspPack);
+	_allRspPacks[id] = true;
 }
 
 void CCST415_Lab2Dlg::ConstructReqPackStr()
@@ -480,6 +560,15 @@ HCURSOR CCST415_Lab2Dlg::OnQueryDragIcon()
 void CCST415_Lab2Dlg::OnBnClickedStartButton()
 {
 	m_lstLog.ResetContent();
+	_bLatent = false;
+	_nCurrentId = -1;
+
+	for (int i = 0; i < 100; i++)
+	{
+		_allRspPacks[i] = false;
+		_allLatents[i] = 0;
+	}
+
 	if (AttemptTCPConnection())
 	{
 		//remove("Lab2.Scenario1.HartwellJ.txt");		// Scenario 1
